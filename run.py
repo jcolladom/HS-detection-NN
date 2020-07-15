@@ -41,11 +41,11 @@ def main(args):
   # Train
   x_train = training_set.text
   y_train = training_set.label
-
+  
   # Test
   x_test = test_set.text
   y_test = test_set.label
-
+  
   # Store each tweet as a list of tokens
   token_list = []
   for text in x_train:
@@ -121,9 +121,9 @@ def main(args):
   # Create the tuner
   tuner = MyTuner(
       model,                                                        # Model's function name
-      objective=kerastuner.Objective("recall", direction="max"),    # Objective metric
+      objective=kerastuner.Objective("val_auc", direction="max"),    # Objective metric
       max_trials=args.trials,                                       # Maximum number of trials
-      executions_per_trial=5,                                       # Increase this to reduce results variance
+      executions_per_trial=1,                                       # Increase this to reduce results variance
       directory='../hp_trials/',                                    # Directory to store the models
       project_name=args.model,                                      # Project name
       overwrite=True)                                               # Overwrite the project
@@ -145,7 +145,7 @@ def main(args):
 
   # Save the best model
   best_model = tuner.get_best_models(num_models=1)
-  print(tuner.results_summary())
+  print(tuner.results_summary(num_trials=1))
 
   # Statistics
   y_prob = best_model[0].predict(np.array(x_test), batch_size=128, verbose=1)
