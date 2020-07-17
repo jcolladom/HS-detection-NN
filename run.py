@@ -24,7 +24,7 @@ class MyTuner(kerastuner.tuners.RandomSearch):
     # You can add additional HyperParameters for preprocessing and custom training loops
     # via overriding `run_trial`
     kwargs['batch_size'] = trial.hyperparameters.Int('batch_size', 32, 256, step=32)
-    kwargs['epochs'] = trial.hyperparameters.Int('epochs', 20, 50)
+    kwargs['epochs'] = trial.hyperparameters.Int('epochs', 100, 500)
     super(MyTuner, self).run_trial(trial, *args, **kwargs)
     
 def main(args):
@@ -56,14 +56,6 @@ def main(args):
   for index, tweet in enumerate(token_list):
     len_texts.append(len(tweet))
 
-  # Calculate statistics
-  max_value = max(len_texts)  # Use max_seq greater than this value
-  min_value = min(len_texts)
-  avg_value = mean(len_texts)
-  median_value = median(len_texts)
-
-  print("El valor max es {} \nEl valor mín es {} \nLa media es {} \nLa mediana es {}".format(max_value, min_value, avg_value, median_value))
-
   # Tokenize
   max_words = 10000   # Top most frequent words
   max_seq = 75       # Size to be padded to (should be greater than the max value=70)
@@ -78,14 +70,9 @@ def main(args):
   word_index = tokenizer.word_index
   vocab_size = len(word_index) + 1
 
-  #print('Found %s unique tokens.' % len(word_index))
-  print(type(word_index), {k: word_index[k] for k in list(word_index)[:20]})
-
-
   # Transform each tweet into a numerical sequence
   train_sequences = tokenizer.texts_to_sequences(x_train)
   test_sequences = tokenizer.texts_to_sequences(x_test)
-
 
   # Fill each sequence with zeros until max_seq
   x_train = preprocessing.sequence.pad_sequences(train_sequences, maxlen=max_seq)
@@ -94,7 +81,7 @@ def main(args):
   # Load embeddings
   path = '../embeddings/embeddings-l-model.vec'
   EMB_DIM = 300
-  LIMIT = 10000
+  LIMIT = 100000
   embedding_matrix = loadembeddings.load_suc(path, word_index, EMB_DIM, LIMIT)
 
   # Metrics
@@ -134,9 +121,10 @@ def main(args):
 
   class_weights = dict(enumerate(class_weights))
 
-  ## Early stopping and model checkpoint callbacks for fitting
+  # Early stopping and tensorboard callbacks for fitting
   callbacks = [
-      EarlyStopping(monitor='val_loss', mode='min', verbose=0, patience=5),
+      EarlyStopping(monitor='val_loss', mode='max', verbose=0, patience=20)#,
+      #keras.callbacks.TensorBoard(log_dir="./logs")
   ]
 
   print("Searching...")

@@ -6,6 +6,7 @@ __pycache__/
 # Custom files
 launcher.sbs
 output/
+logs/
 
 # C extensions
 *.so

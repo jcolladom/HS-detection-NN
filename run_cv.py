@@ -71,14 +71,6 @@ def main(args):
     for index, tweet in enumerate(token_list):
       len_texts.append(len(tweet))
 
-    # Calculate statistics
-    max_value = max(len_texts)  # Use max_seq greater than this value
-    min_value = min(len_texts)
-    avg_value = mean(len_texts)
-    median_value = median(len_texts)
-
-    print("El valor max es {} \nEl valor mín es {} \nLa media es {} \nLa mediana es {}".format(max_value, min_value, avg_value, median_value))
-
     # Tokenize
     max_words = 10000   # Top most frequent words
     max_seq = 75       # Size to be padded to (should be greater than the max value=70)
@@ -93,14 +85,9 @@ def main(args):
     word_index = tokenizer.word_index
     vocab_size = len(word_index) + 1
 
-    #print('Found %s unique tokens.' % len(word_index))
-    print(type(word_index), {k: word_index[k] for k in list(word_index)[:20]})
-
-
     # Transform each tweet into a numerical sequence
     train_sequences = tokenizer.texts_to_sequences(x[train])
     test_sequences = tokenizer.texts_to_sequences(x[test])
-
 
     # Fill each sequence with zeros until max_seq
     x_train = preprocessing.sequence.pad_sequences(train_sequences, maxlen=max_seq)
@@ -135,14 +122,13 @@ def main(args):
     
     print('----------------------------------------------------')
     print(f'Training for fold {fold_no} ...')
-    fold_no = fold_no + 1
 
     # Create the tuner
     tuner = MyTuner(
         model,                                                        # Model's function name
-        objective=kerastuner.Objective("auc", direction="max"),    # Objective metric
+        objective=kerastuner.Objective("val_auc", direction="max"),    # Objective metric
         max_trials=args.trials,                                       # Maximum number of trials
-        executions_per_trial=5,                                       # Increase this to reduce results variance
+        executions_per_trial=1,                                       # Increase this to reduce results variance
         directory='../hp_trials/',                                    # Directory to store the models
         project_name=args.model,                                      # Project name
         overwrite=True)                                               # Overwrite the project
@@ -161,10 +147,17 @@ def main(args):
     print("Searching...")
     tuner.search(x_train, y[train], validation_split=0.20, verbose=0, callbacks=callbacks, class_weight=class_weights)
 
-
     # Save the best model
     best_model = tuner.get_best_models(num_models=1)
     print(tuner.results_summary())
+
+    # CV statistics
+    scores = best_model[0].evaluate(x_test, y[test], verbose=0)
+    print(scores)
+    acc_per_fold.append(scores[1]*100)
+    loss_per_fold.append(scores[0])
+
+    fold_no = fold_no + 1
 
     # Statistics
     y_prob = best_model[0].predict(np.array(x_test), batch_size=128, verbose=1)
@@ -176,6 +169,12 @@ def main(args):
 
     print('\nCONFUSION MATRIX\n')
     print(confusion_matrix(y[test], y_pred))
+  
+  print("----------------------------------------------")
+  print("Average scores for all folds:")
+  print(f"> Accuracy: {np.mean(acc_per_fold)} (+- {np.std(acc_per_fold)})")
+  print(f"> Loss: {np.mean(loss_per_fold)}")
+  print("----------------------------------------------")
 
 if __name__ == "__main__":
   

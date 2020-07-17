@@ -18,4 +18,5 @@ Then, you will also need data to train with and pre-trained embeddings.
 python run.py -m bilstm_cnn -t 25
 ```
 
-This command will run the model 'BiLSTM + CNN' for 25 trials.
+This command will run the model 'BiLSTM + CNN' for 25 trials. Using 'run_cv.py' instead of 'run.py' will perform Cross Validation.
+
