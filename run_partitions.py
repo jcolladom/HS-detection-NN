@@ -26,7 +26,7 @@ class MyTuner(kerastuner.tuners.RandomSearch):
     # You can add additional HyperParameters for preprocessing and custom training loops
     # via overriding `run_trial`
     kwargs['batch_size'] = trial.hyperparameters.Int('batch_size', 32, 256, step=32)
-    kwargs['epochs'] = trial.hyperparameters.Int('epochs', 100, 500)
+    kwargs['epochs'] = trial.hyperparameters.Int('epochs', 100, 300)
     super(MyTuner, self).run_trial(trial, *args, **kwargs)
     
 def main(args):
@@ -49,8 +49,8 @@ def main(args):
   
   for partition in range(1, FOLDS+1):
     partition_path = os.path.join(path, 'particion' + str(partition))
-    training_set = pd.read_csv(partition_path + '/train.tsv', sep='\t')
-    test_set = pd.read_csv(partition_path + '/dev.tsv', sep='\t')
+    training_set = pd.read_csv(partition_path + '/train.tsv', sep='\t', header=None)
+    test_set = pd.read_csv(partition_path + '/dev.tsv', sep='\t', header=None)
 
     # Train
     x_train = training_set[3]
@@ -93,10 +93,10 @@ def main(args):
     x_test = preprocessing.sequence.pad_sequences(test_sequences, maxlen=max_seq)
 
     # Load embeddings
-    path = '../embeddings/embeddings-l-model.vec'
+    emb_path = '../embeddings/embeddings-l-model.vec'
     EMB_DIM = 300
     LIMIT = 100000
-    embedding_matrix = loadembeddings.load_suc(path, word_index, EMB_DIM, LIMIT)
+    embedding_matrix = loadembeddings.load_suc(emb_path, word_index, EMB_DIM, LIMIT)
 
     # Metrics
     METRICS=[

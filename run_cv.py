@@ -14,7 +14,8 @@ from tensorflow import keras
 from tensorflow.keras import layers, initializers
 from kerastuner.tuners import RandomSearch
 from tensorflow.keras.callbacks import EarlyStopping
-from sklearn.metrics import classification_report, confusion_matrix, f1_score
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import f1_score, precision_score, recall_score
 from sklearn.utils import class_weight
 from gensim.models import KeyedVectors
 from sklearn.model_selection import KFold
@@ -54,9 +55,12 @@ def main(args):
   # K-Fold Cross Validator model evaluation
   fold_no = 1
   num_folds = 10
+
   acc_per_fold = []
   loss_per_fold = []
   f1_per_fold = []
+  precision_per_fold = []
+  recall_per_fold = []
 
   # Define the K-Fold Cross Validator
   kfold = KFold(n_splits=num_folds, shuffle=True)
@@ -177,6 +181,8 @@ def main(args):
   print("Average scores for all folds:")
   print(f"> Accuracy: {np.mean(acc_per_fold)} (+- {np.std(acc_per_fold)})")
   print(f"> Loss: {np.mean(loss_per_fold)}")
+  print(f"> Precision macro: {np.mean(precision_per_fold)}")
+  print(f"> Recall macro: {np.mean(recall_per_fold)}")
   print(f"> F1 macro: {np.mean(f1_per_fold)}")
   print("----------------------------------------------")
 
