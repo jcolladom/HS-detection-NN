@@ -14,7 +14,8 @@ from tensorflow import keras
 from tensorflow.keras import layers, initializers
 from kerastuner.tuners import RandomSearch
 from tensorflow.keras.callbacks import EarlyStopping
-from sklearn.metrics import classification_report, confusion_matrix, f1_score
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import f1_score, precision_score, recall_score
 from sklearn.utils import class_weight
 from gensim.models import KeyedVectors
 from sklearn.model_selection import KFold
@@ -34,37 +35,34 @@ def main(args):
   print("GPUS", tf.config.list_physical_devices('GPU'))
 
   # Data loading
-  path = '../data/HaterNet/'
+  path = '../data/rnn_cv10/data/'
 
-  training_set = pd.read_csv(path + 'train_prep_uncased.tsv', sep='\t')
-  test_set = pd.read_csv(path + 'test_prep_uncased.tsv', sep='\t')
-
-  # Train
-  x_train = training_set.text
-  y_train = training_set.label
-
-  # Test
-  x_test = test_set.text
-  y_test = test_set.label
-
-  # Merge dataset
-  x = np.concatenate((x_train, x_test), axis=0)
-  y = np.concatenate((y_train, y_test), axis=0)
-  
   # K-Fold Cross Validator model evaluation
   fold_no = 1
-  num_folds = 10
+  FOLDS = 10
+
   acc_per_fold = []
   loss_per_fold = []
   f1_per_fold = []
+  precision_per_fold = []
+  recall_per_fold = []
+  
+  for partition in range(1, FOLDS+1):
+    partition_path = os.path.join(path, 'particion' + str(partition))
+    training_set = pd.read_csv(partition_path + '/train.tsv', sep='\t')
+    test_set = pd.read_csv(partition_path + '/dev.tsv', sep='\t')
 
-  # Define the K-Fold Cross Validator
-  kfold = KFold(n_splits=num_folds, shuffle=True)
+    # Train
+    x_train = training_set[3]
+    y_train = training_set[1]
 
-  for train, test in kfold.split(x, y):
+    # Test
+    x_test = test_set[3]
+    y_test = test_set[1]
+
     # Store each tweet as a list of tokens
     token_list = []
-    for text in x[train]:
+    for text in x_train:
       token_list.append(preprocessing.text.text_to_word_sequence(text))
 
     # For each list of tokens, store its length
@@ -80,15 +78,15 @@ def main(args):
     tokenizer = preprocessing.text.Tokenizer(num_words=max_words)
 
     # Fit the tokenizer to the dataset
-    tokenizer.fit_on_texts(x[train])
+    tokenizer.fit_on_texts(x_train)
 
     # Dictionary ordered by total frequency
     word_index = tokenizer.word_index
     vocab_size = len(word_index) + 1
 
     # Transform each tweet into a numerical sequence
-    train_sequences = tokenizer.texts_to_sequences(x[train])
-    test_sequences = tokenizer.texts_to_sequences(x[test])
+    train_sequences = tokenizer.texts_to_sequences(x_train)
+    test_sequences = tokenizer.texts_to_sequences(x_test)
 
     # Fill each sequence with zeros until max_seq
     x_train = preprocessing.sequence.pad_sequences(train_sequences, maxlen=max_seq)
@@ -127,18 +125,21 @@ def main(args):
     # Create the tuner
     tuner = MyTuner(
         model,                                                        # Model's function name
-        objective=kerastuner.Objective("val_auc", direction="max"),    # Objective metric
+        objective=kerastuner.Objective("accuracy", direction="max"),    # Objective metric
         max_trials=args.trials,                                       # Maximum number of trials
         executions_per_trial=1,                                       # Increase this to reduce results variance
         directory='../hp_trials/',                                    # Directory to store the models
         project_name=args.model,                                      # Project name
         overwrite=True)                                               # Overwrite the project
-
+    
+    '''
+    # Balancing classes
     class_weights = class_weight.compute_class_weight('balanced',
                                                     np.unique(y[train]),
                                                     y[train])
 
     class_weights = dict(enumerate(class_weights))
+    '''
 
     ## Early stopping and model checkpoint callbacks for fitting
     callbacks = [
@@ -146,14 +147,14 @@ def main(args):
     ]
 
     print("Searching...")
-    tuner.search(x_train, y[train], validation_split=0.20, verbose=0, callbacks=callbacks, class_weight=class_weights)
+    tuner.search(x_train, y_train, validation_split=0.20, verbose=0, callbacks=callbacks)
 
     # Save the best model
     best_model = tuner.get_best_models(num_models=1)
     print(tuner.results_summary(num_trials=1))
 
     # CV statistics
-    scores = best_model[0].evaluate(x_test, y[test], verbose=0)
+    scores = best_model[0].evaluate(x_test, y_test, verbose=0)
     acc_per_fold.append(scores[1]*100)
     loss_per_fold.append(scores[0])
 
@@ -164,19 +165,23 @@ def main(args):
     y_classes = np.around(y_prob, decimals=0)
     y_pred = y_classes.astype(int)
 
-    # Calculate f1
-    f1_per_fold.append(f1_score(y[test], y_pred, average="macro"))
+    # Calculate precision, recall and f1
+    precision_per_fold.append(precision_score(y_test, y_pred, average="macro"))
+    recall_per_fold.append(recall_score(y_test, y_pred, average="macro"))
+    f1_per_fold.append(f1_score(y_test, y_pred, average="macro"))
 
     print('\nCLASSIFICATION REPORT\n')
-    print(classification_report(y[test], y_pred))
+    print(classification_report(y_test, y_pred))
 
     print('\nCONFUSION MATRIX\n')
-    print(confusion_matrix(y[test], y_pred))
+    print(confusion_matrix(y_test, y_pred))
   
   print("----------------------------------------------")
   print("Average scores for all folds:")
   print(f"> Accuracy: {np.mean(acc_per_fold)} (+- {np.std(acc_per_fold)})")
   print(f"> Loss: {np.mean(loss_per_fold)}")
+  print(f"> Precision macro: {np.mean(precision_per_fold)}")
+  print(f"> Recall macro: {np.mean(recall_per_fold)}")
   print(f"> F1 macro: {np.mean(f1_per_fold)}")
   print("----------------------------------------------")
 
