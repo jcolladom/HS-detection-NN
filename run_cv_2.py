@@ -32,6 +32,7 @@ class CVTuner(kt.Tuner):
     fold_no = 1
     num_folds = 10
 
+    # Statistics per fold
     objective = []
     f1_per_fold = []
     precision_per_fold = []
@@ -40,6 +41,7 @@ class CVTuner(kt.Tuner):
     # Define the K-Fold Cross Validator
     kfold = KFold(n_splits=num_folds, shuffle=False)
 
+    # Perform CV
     for train, dev in kfold.split(x, y):
       print('--------------------------------')
       print(f'Training for fold {fold_no} ...')
@@ -47,22 +49,25 @@ class CVTuner(kt.Tuner):
       x_train, x_dev = x[train], x[dev]
       y_train, y_dev = y[train], y[dev]
       
+      # Train the model with the new HP
       model = self.hypermodel.build(hp)
       model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs)
 
+      # Store objective metric for this fold
       objective.append(model.evaluate(x_dev, y_dev))
       
+      # Calculate precision, recall and f1
       y_prob = model.predict(np.array(x_dev), batch_size=128, verbose=0)
       y_classes = np.around(y_prob, decimals=0)
       y_pred = y_classes.astype(int)
-      # Calculate precision, recall and f1
       precision_per_fold.append(precision_score(y_dev, y_pred, average="macro"))
       recall_per_fold.append(recall_score(y_dev, y_pred, average="macro"))
       f1_per_fold.append(f1_score(y_dev, y_pred, average="macro"))
 
       fold_no = fold_no + 1
 
-    self.oracle.update_trial(trial.trial_id, {'val_accuracy': np.mean(objective)})
+    # Update and save trial
+    self.oracle.update_trial(trial.trial_id, {'val_auc': np.mean(objective)})
     self.save_model(trial.trial_id, model)
     print("----------------------------------------------")
     print("Average scores for all folds:")
@@ -160,7 +165,7 @@ def main(args):
   tuner = CVTuner(
       hypermodel=model,                                                        # Model's function name
       oracle=kt.oracles.BayesianOptimization(
-        objective='val_auc',
+        objective=kt.Objective("val_auc", direction="max"),
         max_trials=args.trials
       ),
       directory='../hp_trials/',                                    # Directory to store the models
@@ -193,7 +198,7 @@ def main(args):
   y_pred = y_classes.astype(int)
   
   print('\nCLASSIFICATION REPORT\n')
-  print(classification_report(y_test, y_pred))
+  print(classification_report(y_test, y_pred, digits=4))
 
   print('\nCONFUSION MATRIX\n')
   print(confusion_matrix(y_test, y_pred))
