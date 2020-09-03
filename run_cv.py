@@ -172,7 +172,7 @@ def main(args):
     f1_per_fold.append(f1_score(y[test], y_pred, average="macro"))
 
     print('\nCLASSIFICATION REPORT\n')
-    print(classification_report(y[test], y_pred))
+    print(classification_report(y[test], y_pred, digits=4))
 
     print('\nCONFUSION MATRIX\n')
     print(confusion_matrix(y[test], y_pred))

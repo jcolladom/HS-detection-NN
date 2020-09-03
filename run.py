@@ -141,7 +141,7 @@ def main(args):
   y_pred = y_classes.astype(int)
 
   print('\nCLASSIFICATION REPORT\n')
-  print(classification_report(y_test, y_pred))
+  print(classification_report(y_test, y_pred, digits=4))
 
   print('\nCONFUSION MATRIX\n')
   print(confusion_matrix(y_test, y_pred))
