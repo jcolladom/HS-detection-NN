@@ -152,8 +152,8 @@ class CNNModel(HyperModel):
                                                 3,
                                                 activation=hp.Choice('conv_activation', values=['relu', 'tanh']))(embedding)
 
+        # Pooling
         pooling_layer = keras.layers.GlobalMaxPool1D()(conv_layer)
-
 
         # Dense layer
         dense = layers.Dense(hp.Int('dense_units',
