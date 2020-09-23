@@ -26,5 +26,5 @@ Using the -l parameter will make use of the features' lexicon selected.
 python run.py -l sel -t 50
 ```
 
-Using 'run_cv.py' instead of 'run.py' will perform Cross Validation.
-\Use 'run.py -h' or 'run_cv.py -h' to show help about the input options.
+Using 'run_cv.py' instead of 'run.py' will perform Cross Validation.\
+Use 'run.py -h' or 'run_cv.py -h' to show help about the input options.
