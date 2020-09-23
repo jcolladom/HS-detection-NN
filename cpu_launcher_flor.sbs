@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH --job-name=cv
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mem=64G
+#SBATCH --output="output/%j.out"
+
+# Carga de módulos software necesarios
+spack load --dependencies miniconda3
+
+# Activación de entorno virtual si es necesario
+source activate env
+
+#srun python run_flor.py -m lstm -t 100
+srun python run_features.py -l sel -t 100
+

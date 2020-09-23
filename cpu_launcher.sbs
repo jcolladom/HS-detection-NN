@@ -1,0 +1,16 @@
+#!/bin/bash
+#SBATCH --job-name=cv
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --mem=64G
+#SBATCH --output="output/%j.out"
+
+# Carga de módulos software necesarios
+spack load --dependencies miniconda3
+
+# Activación de entorno virtual si es necesario
+source activate env-36
+
+#srun python run.py -m lstm -t 100
+srun python run_features.py -l all -t 100
