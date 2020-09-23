@@ -14,16 +14,17 @@ Then, you will also need data to train with and pre-trained embeddings.
 
 ## Example
 
+The command below will run the model "LSTM" for 25 trials.\
+
 ```bash
-python run.py -m bilstm_cnn -t 25
+python run.py -m lstm -t 25
 ```
 
-This command will run the model 'BiLSTM + CNN' for 25 trials.\
-Using 'run_cv_2.py' instead of 'run.py' will perform Cross Validation.\
-Using 'run_partitions.py' will perform CV in an already splitted dataset.\
-'run_LIWC.py' and 'run_SEL.py' use lexicon features as input, but don't perform CV nor hyperparameter optimization.\
+Using the -l parameter will make use of the features' lexicon selected.\
 
-## WARNING!
+```bash
+python run.py -l sel -t 50
+```
 
-Do not use 'run_cv.py' since it performs CV in a wrong way. Use 'run_cv_2.py' instead.
-
+Using 'run_cv.py' instead of 'run.py' will perform Cross Validation.\
+Use 'run.py -h' or 'run_cv.py -h' to show help about the input options.\
